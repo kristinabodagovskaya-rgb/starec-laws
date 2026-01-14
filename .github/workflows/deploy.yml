@@ -1,0 +1,44 @@
+name: Deploy laws site to Hetzner
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app_garant.py'
+      - 'templates/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: Deploy to Hetzner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          port: 22
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            echo "Deploying laws site..."
+            cd /var/www/laws
+
+            # Backup current files
+            cp app_garant.py app_garant.py.backup 2>/dev/null || true
+            cp templates/law_detail_garant.html templates/law_detail_garant.html.backup 2>/dev/null || true
+
+            # Download new files from GitHub
+            curl -sL https://raw.githubusercontent.com/kristinabodagovskaya-rgb/starec-laws/main/app_garant.py -o app_garant.py
+            curl -sL https://raw.githubusercontent.com/kristinabodagovskaya-rgb/starec-laws/main/templates/law_detail_garant.html -o templates/law_detail_garant.html
+
+            # Restart service
+            systemctl restart law-viewer
+
+            echo "Deploy complete!"
+            systemctl status law-viewer --no-pager | head -10
