@@ -110,56 +110,6 @@
             color: #86868b;
         }
 
-        /* Автоподбор (добавлено 13.01.2026) */
-        .search-wrapper {
-            position: relative;
-            flex: 1;
-        }
-
-        .autocomplete-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            margin-top: 4px;
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        }
-
-        .autocomplete-dropdown.active {
-            display: block;
-        }
-
-        .autocomplete-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            font-size: 0.9375rem;
-            color: #1d1d1f;
-            text-decoration: none;
-            display: block;
-        }
-
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
-        .autocomplete-item:hover,
-        .autocomplete-item.selected {
-            background: #f5f5f7;
-        }
-
-        .autocomplete-item mark {
-            background: #fef3c7;
-            padding: 0;
-        }
-
         .search-btn {
             padding: 0.875rem 2rem;
             background: #1d1d1f;
@@ -308,19 +258,14 @@
         <p class="subtitle">Правовая информационная система</p>
 
         <div class="search-container">
-            <form action="/search" method="GET" class="search-form" id="search-form">
-                <div class="search-wrapper">
-                    <input
-                        type="text"
-                        name="q"
-                        id="search-input"
-                        class="search-input"
-                        placeholder="Поиск по законам: название, статья, тема..."
-                        autocomplete="off"
-                        required
-                    >
-                    <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
-                </div>
+            <form action="/search" method="GET" class="search-form">
+                <input
+                    type="text"
+                    name="q"
+                    class="search-input"
+                    placeholder="Поиск по законам: название, статья, тема..."
+                    required
+                >
                 <button type="submit" class="search-btn">Найти</button>
             </form>
         </div>
@@ -352,103 +297,5 @@
             v1.0 (Документы) + v2.0 (Ситуации)
         </div>
     </div>
-
-    <script>
-    // Автоподбор для поиска (добавлено 13.01.2026)
-    (function() {
-        const input = document.getElementById('search-input');
-        const dropdown = document.getElementById('autocomplete-dropdown');
-        const form = document.getElementById('search-form');
-        let selectedIndex = -1;
-        let debounceTimer;
-
-        function debounce(fn, delay) {
-            return function(...args) {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => fn.apply(this, args), delay);
-            };
-        }
-
-        function highlightMatch(text, query) {
-            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-            return text.replace(regex, '<mark>$1</mark>');
-        }
-
-        async function fetchSuggestions(query) {
-            if (query.length < 2) {
-                dropdown.classList.remove('active');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
-                const results = await response.json();
-
-                if (results.length === 0) {
-                    dropdown.classList.remove('active');
-                    return;
-                }
-
-                dropdown.innerHTML = results.map((item, index) => `
-                    <a href="${item.url}" class="autocomplete-item" data-index="${index}">
-                        ${highlightMatch(item.title, query)}
-                    </a>
-                `).join('');
-
-                dropdown.classList.add('active');
-                selectedIndex = -1;
-            } catch (e) {
-                console.error('Autocomplete error:', e);
-                dropdown.classList.remove('active');
-            }
-        }
-
-        const debouncedFetch = debounce(fetchSuggestions, 200);
-
-        input.addEventListener('input', (e) => {
-            debouncedFetch(e.target.value);
-        });
-
-        input.addEventListener('keydown', (e) => {
-            const items = dropdown.querySelectorAll('.autocomplete-item');
-
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                updateSelection(items);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                selectedIndex = Math.max(selectedIndex - 1, -1);
-                updateSelection(items);
-            } else if (e.key === 'Enter' && selectedIndex >= 0) {
-                e.preventDefault();
-                items[selectedIndex].click();
-            } else if (e.key === 'Escape') {
-                dropdown.classList.remove('active');
-            }
-        });
-
-        function updateSelection(items) {
-            items.forEach((item, index) => {
-                item.classList.toggle('selected', index === selectedIndex);
-            });
-            if (selectedIndex >= 0 && items[selectedIndex]) {
-                items[selectedIndex].scrollIntoView({ block: 'nearest' });
-            }
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.search-wrapper')) {
-                dropdown.classList.remove('active');
-            }
-        });
-
-        input.addEventListener('focus', () => {
-            if (input.value.length >= 2 && dropdown.children.length > 0) {
-                dropdown.classList.add('active');
-            }
-        });
-    })();
-    </script>
 </body>
 </html>
