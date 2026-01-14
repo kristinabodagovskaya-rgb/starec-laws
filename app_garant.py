@@ -394,21 +394,22 @@ def show_law(law_id):
         'last_amendment_info': row[8]
     }
 
-    # Get all revisions for this law
+    # Get all editions for this law from law_editions table
     cursor.execute("""
-        SELECT id, revision_date, revision_description, is_current
-        FROM law_revisions
+        SELECT id, edition_id, valid_from, change_reason, is_current
+        FROM law_editions
         WHERE law_id = %s
-        ORDER BY revision_date DESC
+        ORDER BY valid_from DESC
     """, (law_id,))
 
-    revisions = []
-    for rev_row in cursor.fetchall():
-        revisions.append({
-            'id': rev_row[0],
-            'date': rev_row[1],
-            'description': rev_row[2],
-            'is_current': rev_row[3]
+    editions = []
+    for ed_row in cursor.fetchall():
+        editions.append({
+            'id': ed_row[0],
+            'edition_id': ed_row[1],
+            'date': ed_row[2],
+            'description': ed_row[3],
+            'is_current': ed_row[4]
         })
 
     cursor.close()
@@ -424,19 +425,19 @@ def show_law(law_id):
         law=law,
         toc=toc,
         articles=articles,
-        revisions=revisions
+        editions=editions
     )
 
 
-@app.route('/law/<int:law_id>/revision/<int:revision_id>')
-def show_law_revision(law_id, revision_id):
-    """Show specific revision of a law"""
+@app.route('/law/<int:law_id>/edition/<int:edition_id>')
+def show_law_edition(law_id, edition_id):
+    """Show specific edition of a law"""
     conn = psycopg2.connect(**PG_CONFIG)
     cursor = conn.cursor()
 
     # Get law basic info
     cursor.execute("""
-        SELECT id, title, law_number
+        SELECT id, title, law_number, law_date
         FROM law_embeddings
         WHERE id = %s
     """, (law_id,))
@@ -447,15 +448,15 @@ def show_law_revision(law_id, revision_id):
         conn.close()
         return "Закон не найден", 404
 
-    # Get specific revision
+    # Get specific edition
     cursor.execute("""
-        SELECT id, revision_date, revision_description, full_text, is_current
-        FROM law_revisions
+        SELECT id, edition_id, valid_from, change_reason, content_html, is_current
+        FROM law_editions
         WHERE id = %s AND law_id = %s
-    """, (revision_id, law_id))
-    rev_row = cursor.fetchone()
+    """, (edition_id, law_id))
+    ed_row = cursor.fetchone()
 
-    if not rev_row:
+    if not ed_row:
         cursor.close()
         conn.close()
         return "Редакция не найдена", 404
@@ -464,27 +465,28 @@ def show_law_revision(law_id, revision_id):
         'id': law_row[0],
         'title': law_row[1],
         'law_number': law_row[2],
-        'full_text': rev_row[3],
-        'law_date': None,
-        'last_amendment_date': rev_row[1],  # revision date
-        'last_amendment_info': rev_row[2]    # revision description
+        'law_date': law_row[3],
+        'full_text': ed_row[4],  # content_html from edition
+        'last_amendment_date': ed_row[2],  # valid_from date
+        'last_amendment_info': ed_row[3]   # change_reason
     }
 
-    # Get all revisions for navigation
+    # Get all editions for navigation
     cursor.execute("""
-        SELECT id, revision_date, revision_description, is_current
-        FROM law_revisions
+        SELECT id, edition_id, valid_from, change_reason, is_current
+        FROM law_editions
         WHERE law_id = %s
-        ORDER BY revision_date DESC
+        ORDER BY valid_from DESC
     """, (law_id,))
 
-    revisions = []
-    for r in cursor.fetchall():
-        revisions.append({
-            'id': r[0],
-            'date': r[1],
-            'description': r[2],
-            'is_current': r[3]
+    editions = []
+    for e in cursor.fetchall():
+        editions.append({
+            'id': e[0],
+            'edition_id': e[1],
+            'date': e[2],
+            'description': e[3],
+            'is_current': e[4]
         })
 
     cursor.close()
@@ -499,8 +501,8 @@ def show_law_revision(law_id, revision_id):
         law=law,
         toc=toc,
         articles=articles,
-        revisions=revisions,
-        current_revision_id=revision_id,
+        editions=editions,
+        current_edition_id=edition_id,
         is_revision_view=True
     )
 
