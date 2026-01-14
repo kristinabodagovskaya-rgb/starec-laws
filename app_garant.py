@@ -1,4 +1,4 @@
-from flask import Flask, render_template, render_template_string, request, send_file, redirect
+from flask import Flask, render_template, render_template_string, request, send_file, redirect, jsonify
 import psycopg2
 import psycopg2.extras
 import re
@@ -12,6 +12,45 @@ import io
 from functools import lru_cache
 
 app = Flask(__name__)
+
+# Словарь сокращений законов (добавлено 13.01.2026)
+LAW_ABBREVIATIONS = {
+    'гк': 'гражданский кодекс',
+    'гк рф': 'гражданский кодекс',
+    'ук': 'уголовный кодекс',
+    'ук рф': 'уголовный кодекс',
+    'тк': 'трудовой кодекс',
+    'тк рф': 'трудовой кодекс',
+    'кап': 'кодекс административных правонарушений',
+    'коап': 'кодекс административных правонарушений',
+    'нк': 'налоговый кодекс',
+    'нк рф': 'налоговый кодекс',
+    'жк': 'жилищный кодекс',
+    'жк рф': 'жилищный кодекс',
+    'ск': 'семейный кодекс',
+    'ск рф': 'семейный кодекс',
+    'зк': 'земельный кодекс',
+    'зк рф': 'земельный кодекс',
+    'апк': 'арбитражный процессуальный кодекс',
+    'гпк': 'гражданский процессуальный кодекс',
+    'упк': 'уголовно-процессуальный кодекс',
+    'бк': 'бюджетный кодекс',
+    'вк': 'водный кодекс',
+    'лк': 'лесной кодекс',
+    'зпп': 'защите прав потребителей',
+    'озпп': 'защите прав потребителей',
+    'о защите прав': 'защите прав потребителей',
+    'зозпп': 'защите прав потребителей',
+}
+
+
+def expand_abbreviations(query):
+    """Раскрывает сокращения в поисковом запросе"""
+    query_lower = query.lower().strip()
+    for abbr, full in LAW_ABBREVIATIONS.items():
+        if abbr in query_lower:
+            query_lower = query_lower.replace(abbr, full)
+    return query_lower
 
 PG_CONFIG = {
     'host': '127.0.0.1',
@@ -131,22 +170,39 @@ INDEX_TEMPLATE = '''
 '''
 
 
+def fix_merged_numbers(html):
+    """
+    Исправляет слипшиеся номера пунктов в тексте.
+    Пример: "2Граждане" -> "2. Граждане"
+    Добавлено 13.01.2026
+    """
+    if not html:
+        return html
+    # Добавляет точку и пробел после номера пункта, если он слипся с русской буквой
+    return re.sub(r'</a>(\d+)([А-ЯЁа-яё])', r'</a>\1. \2', html)
+
+
 def parse_law_structure(full_text_html):
     """
     Parse law HTML structure to extract:
     - Sections (РАЗДЕЛ)
     - Chapters (Глава)
-    - Articles (Статья in <div id="stXXX">)
+    - Articles (Статья)
+
+    UPDATED 13.01.2026:
+    - Добавлена поддержка формата Кодекса (class='H' для заголовков статей)
+    - Используется soup.find_all вместо итерации по children
 
     Returns:
         toc: List of sections with chapters and articles
         articles: Flat list of all articles
         full_text_processed: HTML with article-section wrappers
-
-    FIXED: Process only top-level elements to avoid duplication
     """
     if not full_text_html:
         return [], [], ""
+
+    # Исправляем слипшиеся номера перед парсингом
+    full_text_html = fix_merged_numbers(full_text_html)
 
     soup = BeautifulSoup(full_text_html, 'html.parser')
 
@@ -154,31 +210,18 @@ def parse_law_structure(full_text_html):
     articles = []
     current_section = None
     current_chapter = None
+    article_counter = 0
 
-    processed_html_parts = []
+    # Ищем статьи по class='H' (формат Кодекса) или по традиционным div с id
+    article_headers = soup.find_all('p', class_='H')
 
-    # Process only direct children of body/root to avoid nested duplication
-    # Get the root element (could be body or the parsed fragment)
-    root_elements = list(soup.children) if soup.name is None else [soup]
+    if article_headers:
+        # Формат Кодекса: статьи помечены class='H'
+        for header in article_headers:
+            text = header.get_text(strip=True)
 
-    def process_children(parent):
-        """Process direct children only, no recursion into nested elements"""
-        nonlocal current_section, current_chapter
-
-        for elem in parent.children:
-            # Skip text nodes
-            if isinstance(elem, str):
-                if elem.strip():
-                    processed_html_parts.append(elem)
-                continue
-
-            if not hasattr(elem, 'name'):
-                continue
-
-            text = elem.get_text(strip=True)
-
-            # Check for SECTION
-            if elem.name == 'p' and text.startswith('РАЗДЕЛ'):
+            # Проверяем тип заголовка
+            if text.startswith('РАЗДЕЛ') or text.startswith('Раздел'):
                 current_section = {
                     'title': text,
                     'chapters': [],
@@ -186,70 +229,140 @@ def parse_law_structure(full_text_html):
                 }
                 toc.append(current_section)
                 current_chapter = None
-                processed_html_parts.append(str(elem))
 
-            # Check for CHAPTER
-            elif elem.name == 'p' and text.startswith('Глава'):
+            elif text.startswith('Глава') or text.startswith('ГЛАВА'):
+                chapter = {
+                    'title': text,
+                    'articles': []
+                }
                 if current_section:
-                    current_chapter = {
-                        'title': text,
+                    current_section['chapters'].append(chapter)
+                    current_chapter = chapter
+                else:
+                    # Глава без раздела - создаём дефолтную секцию
+                    current_section = {
+                        'title': '',
+                        'chapters': [chapter],
                         'articles': []
                     }
-                    current_section['chapters'].append(current_chapter)
-                processed_html_parts.append(str(elem))
+                    toc.append(current_section)
+                    current_chapter = chapter
 
-            # Check for ARTICLE (div with id="stXXX" or id="ст-XXX" or class="article")
-            elif elem.name == 'div' and (elem.get('id', '').startswith('st') or elem.get('id', '').startswith('ст-') or 'article' in elem.get('class', [])):
-                article_id = elem.get('id')
-                article_title_elem = elem.find('h3')
+            elif text.startswith('Статья') or text.startswith('СТАТЬЯ'):
+                article_counter += 1
+                article_id = f'st{article_counter}'
 
-                if article_title_elem:
-                    article_title = article_title_elem.get_text(strip=True)
+                # Добавляем id к параграфу для навигации
+                header['id'] = article_id
+                header['class'] = header.get('class', []) + ['article-header']
 
-                    # Add to flat article list
-                    articles.append({
-                        'id': article_id,
-                        'title': article_title
-                    })
+                article_entry = {
+                    'id': article_id,
+                    'title': text[:100] + '...' if len(text) > 100 else text
+                }
 
-                    # Add to current chapter or section
-                    article_entry = {
-                        'id': article_id,
-                        'title': article_title
+                articles.append(article_entry)
+
+                if current_chapter:
+                    current_chapter['articles'].append(article_entry)
+                elif current_section:
+                    current_section['articles'].append(article_entry)
+                else:
+                    # Статья без раздела/главы
+                    if not toc:
+                        toc.append({
+                            'title': '',
+                            'chapters': [],
+                            'articles': []
+                        })
+                    toc[0]['articles'].append(article_entry)
+
+        # Возвращаем обработанный HTML
+        full_text_processed = str(soup)
+
+    else:
+        # Традиционный формат: div с id="stXXX"
+        processed_html_parts = []
+        root_elements = list(soup.children) if soup.name is None else [soup]
+
+        def process_children(parent):
+            nonlocal current_section, current_chapter
+
+            for elem in parent.children:
+                if isinstance(elem, str):
+                    if elem.strip():
+                        processed_html_parts.append(elem)
+                    continue
+
+                if not hasattr(elem, 'name'):
+                    continue
+
+                text = elem.get_text(strip=True)
+
+                if elem.name == 'p' and text.startswith('РАЗДЕЛ'):
+                    current_section = {
+                        'title': text,
+                        'chapters': [],
+                        'articles': []
                     }
-
-                    if current_chapter:
-                        current_chapter['articles'].append(article_entry)
-                    elif current_section:
-                        current_section['articles'].append(article_entry)
-
-                    # Wrap article in section div for styling
-                    elem['class'] = elem.get('class', []) + ['article-section']
+                    toc.append(current_section)
+                    current_chapter = None
                     processed_html_parts.append(str(elem))
+
+                elif elem.name == 'p' and text.startswith('Глава'):
+                    if current_section:
+                        current_chapter = {
+                            'title': text,
+                            'articles': []
+                        }
+                        current_section['chapters'].append(current_chapter)
+                    processed_html_parts.append(str(elem))
+
+                elif elem.name == 'div' and (elem.get('id', '').startswith('st') or elem.get('id', '').startswith('ст-') or 'article' in elem.get('class', [])):
+                    article_id = elem.get('id')
+                    article_title_elem = elem.find('h3')
+
+                    if article_title_elem:
+                        article_title = article_title_elem.get_text(strip=True)
+
+                        articles.append({
+                            'id': article_id,
+                            'title': article_title
+                        })
+
+                        article_entry = {
+                            'id': article_id,
+                            'title': article_title
+                        }
+
+                        if current_chapter:
+                            current_chapter['articles'].append(article_entry)
+                        elif current_section:
+                            current_section['articles'].append(article_entry)
+
+                        elem['class'] = elem.get('class', []) + ['article-section']
+                        processed_html_parts.append(str(elem))
+                    else:
+                        processed_html_parts.append(str(elem))
+
                 else:
                     processed_html_parts.append(str(elem))
 
-            else:
-                # For other elements, add them as-is
-                processed_html_parts.append(str(elem))
+        for root in root_elements:
+            if hasattr(root, 'children'):
+                process_children(root)
+            elif hasattr(root, 'name'):
+                processed_html_parts.append(str(root))
 
-    # Process all root-level elements
-    for root in root_elements:
-        if hasattr(root, 'children'):
-            process_children(root)
-        elif hasattr(root, 'name'):
-            # Single element case
-            processed_html_parts.append(str(root))
+        full_text_processed = ''.join(processed_html_parts)
 
-    # If no sections found, create a default section
+    # Если статьи найдены, но нет структуры TOC
     if not toc and articles:
         toc = [{
             'title': 'Статьи',
             'chapters': [],
             'articles': articles
         }]
-
-    full_text_processed = ''.join(processed_html_parts)
 
     return toc, articles, full_text_processed
 
@@ -270,7 +383,18 @@ def get_query_embedding(query_text):
 @app.route('/')
 def index():
     """Clean homepage with search and link to laws database"""
-    return render_template('index_clean.html')
+    # Динамический счётчик законов (добавлено 13.01.2026)
+    try:
+        conn = psycopg2.connect(**PG_CONFIG)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM law_embeddings")
+        law_count = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error getting law count: {e}")
+        law_count = 110  # fallback
+    return render_template('index_clean.html', law_count=law_count)
 
 
 @app.route('/laws')
@@ -333,8 +457,11 @@ def search():
     if not query:
         return render_template_string(INDEX_TEMPLATE, laws=[], total_laws=0)
 
+    # Раскрываем сокращения в запросе (добавлено 13.01.2026)
+    expanded_query = expand_abbreviations(query)
+
     # Generate query embedding
-    query_embedding = get_query_embedding(query)
+    query_embedding = get_query_embedding(expanded_query)
 
     if not query_embedding:
         return "Error generating search embedding", 500
@@ -606,6 +733,53 @@ def download_law(law_id):
         download_name=filename,
         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     )
+
+
+@app.route('/api/autocomplete')
+def autocomplete():
+    """
+    Автоподбор для поиска законов.
+    Добавлено 13.01.2026
+    """
+    query = request.args.get('q', '').strip()
+
+    if not query or len(query) < 2:
+        return jsonify([])
+
+    # Раскрываем сокращения
+    expanded_query = expand_abbreviations(query)
+
+    try:
+        conn = psycopg2.connect(**PG_CONFIG)
+        cursor = conn.cursor()
+
+        # Ищем законы по названию
+        cursor.execute("""
+            SELECT id, title
+            FROM law_embeddings
+            WHERE title ILIKE %s
+            ORDER BY
+                CASE WHEN title ILIKE %s THEN 0 ELSE 1 END,
+                title
+            LIMIT 10
+        """, (f'%{expanded_query}%', f'{expanded_query}%'))
+
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                'id': row[0],
+                'title': row[1],
+                'url': f'/law/{row[0]}'
+            })
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(results)
+
+    except Exception as e:
+        print(f"Autocomplete error: {e}")
+        return jsonify([])
 
 
 # ========== V2.0 ROUTES ==========
