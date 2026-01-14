@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Правовая система v2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .v2-header {
+            background: white;
+            color: #1d1d1f;
+            padding: 2rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .header-content h1 {
+            font-size: 1.75rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .v2-nav {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 1rem;
+        }
+
+        .nav-link {
+            padding: 1rem 1.25rem;
+            text-decoration: none;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 0.9375rem;
+        }
+
+        .nav-link:hover {
+            color: #1d1d1f;
+            border-bottom-color: #1d1d1f;
+        }
+
+        .nav-link.active {
+            color: #1d1d1f;
+            border-bottom-color: #1d1d1f;
+        }
+
+        .v2-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .hero-section {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .hero-content h2 {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+
+        .hero-content p {
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 400;
+            color: #1d1d1f;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.8125rem;
+            color: #64748b;
+        }
+
+        .entry-points, .regimes-section, .about-v2, .example-flow {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .entry-points h2, .regimes-section h2, .about-v2 h2, .example-flow h2 {
+            font-size: 1.25rem;
+            font-weight: 400;
+            margin-bottom: 1.5rem;
+        }
+
+        .entry-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .entry-card {
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .entry-card:hover {
+            border-color: #1d1d1f;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .entry-card h3 {
+            font-size: 1.125rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+
+        .entry-card p {
+            font-size: 0.875rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .entry-arrow {
+            margin-top: 1rem;
+            font-size: 1.25rem;
+            color: #1d1d1f;
+        }
+
+        .regimes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .regime-card {
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .regime-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .regime-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+
+        .regime-header h3 {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #1e293b;
+        }
+
+        .regime-category {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: #f1f5f9;
+            border-radius: 0.25rem;
+            color: #64748b;
+        }
+
+        .regime-description {
+            font-size: 0.875rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .comparison-col h3 {
+            font-size: 1.125rem;
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+
+        .comparison-col ul {
+            list-style: none;
+        }
+
+        .comparison-col li {
+            padding: 0.5rem 0;
+            font-size: 0.9375rem;
+            color: #64748b;
+        }
+
+        .flow-steps {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .flow-step {
+            flex: 1;
+            min-width: 200px;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            line-height: 2rem;
+            background: #1d1d1f;
+            color: white;
+            border-radius: 50%;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .flow-step h4 {
+            font-size: 1rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+        }
+
+        .flow-step p {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: #cbd5e1;
+        }
+
+        .v2-footer {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 2rem 1rem;
+            margin-top: 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .footer-content a {
+            color: #1d1d1f;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .nav-content {
+                flex-wrap: wrap;
+            }
+
+            .flow-arrow {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="v2-header">
+        <div class="header-content">
+            <h1>Правовая система v2.0</h1>
+            <p class="tagline">Навигация по юридическим ситуациям, состояниям и последствиям</p>
+        </div>
+    </header>
+
+    <nav class="v2-nav">
+        <div class="nav-content">
+            <a href="/v2/" class="nav-link active">Главная</a>
+            <a href="/v2/situations/" class="nav-link">Ситуации</a>
+            <a href="/v2/regimes/" class="nav-link">Режимы</a>
+            <a href="/v2/timeline/" class="nav-link">Изменения</a>
+            <a href="/laws" class="nav-link">Все законы</a>
+            <a href="/" class="nav-link">← v1.0</a>
+        </div>
+    </nav>
+
+    <main class="v2-main">
+        <section class="hero-section">
+            <div class="hero-content">
+                <h2>Новый подход к правовой информации</h2>
+                <p>Вместо поиска по документам — навигация по <strong>ситуациям</strong>, <strong>состояниям</strong> и <strong>последствиям</strong></p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.regimes_count }}</div>
+                        <div class="stat-label">Правовых режимов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.states_count }}</div>
+                        <div class="stat-label">Юридических состояний</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.situations_count }}</div>
+                        <div class="stat-label">Типовых ситуаций</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.active_norms_count }}</div>
+                        <div class="stat-label">Действующих норм</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="entry-points">
+            <h2>С чего начать?</h2>
+
+            <div class="entry-cards">
+                <a href="/v2/situations/" class="entry-card">
+                    <h3>Типовые ситуации</h3>
+                    <p>Начните с описания своей ситуации: договор, спор, обязательство, процедура</p>
+                    <div class="entry-arrow">→</div>
+                </a>
+
+                <a href="/v2/regimes/" class="entry-card">
+                    <h3>Правовые режимы</h3>
+                    <p>Изучите области правового регулирования: договоры, ответственность, налоги</p>
+                    <div class="entry-arrow">→</div>
+                </a>
+
+                <a href="/v2/timeline/" class="entry-card">
+                    <h3>Изменения законов</h3>
+                    <p>Посмотрите последние изменения законодательства на временной линии</p>
+                    <div class="entry-arrow">→</div>
+                </a>
+            </div>
+        </section>
+
+        <section class="regimes-section">
+            <h2>Основные правовые режимы</h2>
+
+            <div class="regimes-grid">
+                {% for regime in regimes %}
+                <a href="/v2/regime/{{ regime.id }}" class="regime-card category-{{ regime.category }}">
+                    <div class="regime-header">
+                        <h3>{{ regime.name }}</h3>
+                        <span class="regime-category">{{ regime.category }}</span>
+                    </div>
+                    <p class="regime-description">{{ regime.description }}</p>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="about-v2">
+            <h2>Что изменилось в v2.0?</h2>
+
+            <div class="comparison-grid">
+                <div class="comparison-col">
+                    <h3>v1.0 — Документы</h3>
+                    <ul>
+                        <li>Поиск по тексту законов</li>
+                        <li>Чтение статей</li>
+                        <li>Нужно знать, что искать</li>
+                        <li>Сложно понять последствия</li>
+                    </ul>
+                </div>
+                <div class="comparison-col">
+                    <h3>v2.0 — Ситуации</h3>
+                    <ul>
+                        <li>Навигация по ситуациям</li>
+                        <li>Юридические состояния</li>
+                        <li>Переходы и последствия</li>
+                        <li>Контекст применения</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="example-flow">
+            <h2>Пример работы</h2>
+
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="step-number">1</div>
+                    <h4>Выбираете ситуацию</h4>
+                    <p>"Задержка оплаты по договору"</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                    <div class="step-number">2</div>
+                    <h4>Видите состояния</h4>
+                    <p>"Обязательство просрочено"</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                    <div class="step-number">3</div>
+                    <h4>Узнаете последствия</h4>
+                    <p>"Начисление неустойки, проценты ст. 395 ГК РФ"</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="v2-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Starec Legal</p>
+            <p>v2.0-prototype | <a href="/">Вернуться к v1.0</a></p>
+        </div>
+    </footer>
+</body>
+</html>

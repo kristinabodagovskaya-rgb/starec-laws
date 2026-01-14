@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>База законов РФ</title>
+    <link rel="stylesheet" href="/static/css/garant_style.css">
+    <style>
+        body {
+            background: #f5f5f5;
+        }
+
+        .laws-page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: white;
+            color: #1d1d1f;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-weight: 400;
+        }
+
+        .filters-panel {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group label {
+            display: block;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #1d1d1f;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #1d1d1f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #000000;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .laws-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .law-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .law-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .law-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .law-card h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: #1e293b;
+        }
+
+        .law-type-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        .type-code {
+            background: #f5f5f5;
+            color: #6e6e73;
+        }
+
+        .type-fkz {
+            background: #f5f5f5;
+            color: #6e6e73;
+        }
+
+        .type-fz {
+            background: #f5f5f5;
+            color: #6e6e73;
+        }
+
+        .law-metadata {
+            color: #64748b;
+            font-size: 0.9375rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .law-meta-item {
+            display: inline-block;
+            margin-right: 1rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .page-link {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: #374151;
+            font-weight: 400;
+            transition: all 0.2s;
+        }
+
+        .page-link:hover {
+            border-color: #1d1d1f;
+            color: #1d1d1f;
+        }
+
+        .page-link.active {
+            background: #1d1d1f;
+            color: white;
+            border-color: #1d1d1f;
+        }
+
+        .results-count {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="laws-page">
+        <div class="page-header">
+            <a href="/" style="color: #1d1d1f; text-decoration: none;">← Назад на главную</a>
+            <h1>База законов Российской Федерации</h1>
+            <p>Полные тексты законов с возможностью фильтрации и поиска</p>
+        </div>
+
+        <div class="filters-panel">
+            <form method="GET" action="/laws">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label for="law_type">Тип акта:</label>
+                        <select name="law_type" id="law_type">
+                            <option value="">Все типы</option>
+                            <option value="Кодекс" {% if law_type == 'Кодекс' %}selected{% endif %}>Кодекс</option>
+                            <option value="ФЗ" {% if law_type == 'ФЗ' %}selected{% endif %}>Федеральный закон (ФЗ)</option>
+                            <option value="ФКЗ" {% if law_type == 'ФКЗ' %}selected{% endif %}>ФКЗ</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="search">Поиск по названию:</label>
+                        <input type="text" name="search" id="search" value="{{ search }}" placeholder="Введите название закона...">
+                    </div>
+                </div>
+
+                <div class="filter-buttons">
+                    <button type="submit" class="btn btn-primary">Найти</button>
+                    <a href="/laws" class="btn btn-secondary">Сбросить</a>
+                </div>
+            </form>
+        </div>
+
+        {% if laws %}
+        <div class="results-count">
+            Найдено законов: <strong>{{ laws|length }}</strong>
+        </div>
+
+        <div class="laws-grid">
+            {% for law in laws %}
+            <a href="/law/{{ law.id }}" class="law-card">
+                <div class="law-card-header">
+                    <h3>{{ law.title }}</h3>
+                    <span class="law-type-badge {% if 'кодекс' in law.title|lower %}type-code{% elif 'ФКЗ' in (law.law_number or '') %}type-fkz{% else %}type-fz{% endif %}">
+                        {% if 'кодекс' in law.title|lower %}
+                            Кодекс
+                        {% elif 'ФКЗ' in (law.law_number or '') %}
+                            ФКЗ
+                        {% else %}
+                            ФЗ
+                        {% endif %}
+                    </span>
+                </div>
+
+                {% if law.law_number or law.law_date %}
+                <div class="law-metadata">
+                    {% if law.law_date %}
+                    <span class="law-meta-item">от {{ law.law_date.strftime('%d.%m.%Y') }}</span>
+                    {% endif %}
+                    {% if law.law_number %}
+                    <span class="law-meta-item">№ {{ law.law_number }}</span>
+                    {% endif %}
+                    {% if law.last_amendment_info %}
+                    <span class="law-meta-item">{{ law.last_amendment_info }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="text-align: center; padding: 3rem; color: #64748b;">
+            <p style="font-size: 1.25rem;">Законы не найдены</p>
+            <p>Попробуйте изменить фильтры</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

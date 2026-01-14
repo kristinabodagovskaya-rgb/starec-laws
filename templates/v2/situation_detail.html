@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ situation.title }} - v2.0</title>
+    <link rel="stylesheet" href="/static/css/v2_style.css">
+</head>
+<body>
+    <header class="v2-header">
+        <div class="header-content">
+            <a href="/v2/situations/" class="back-link">← К списку ситуаций</a>
+            <h1>{{ situation.title }}</h1>
+            {% if situation.title_en %}
+            <p class="title-en">{{ situation.title_en }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    <nav class="v2-nav">
+        <div class="nav-content">
+            <a href="/v2/" class="nav-link">Главная</a>
+            <a href="/v2/situations/" class="nav-link">📋 Ситуации</a>
+            <a href="/v2/regimes/" class="nav-link">⚖️ Режимы</a>
+            <a href="/v2/timeline/" class="nav-link">📅 Изменения</a>
+            <a href="/" class="nav-link nav-link-v1">← v1.0</a>
+        </div>
+    </nav>
+
+    <main class="v2-main situation-detail">
+        <section class="situation-overview">
+            <div class="overview-card">
+                {% if situation.description %}
+                <div class="overview-item">
+                    <h3>Описание ситуации</h3>
+                    <p>{{ situation.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if situation.actors %}
+                <div class="overview-item">
+                    <h3>Участники</h3>
+                    <div class="actors-list">
+                        {% for actor in situation.actors %}
+                        <div class="actor-item">
+                            <span class="actor-type">{{ actor.type }}</span>
+                            {% if actor.role %}
+                            <span class="actor-role">{{ actor.role }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if situation.category %}
+                <div class="overview-item">
+                    <h3>Категория</h3>
+                    <span class="category-badge">{{ situation.category }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if regimes %}
+        <section class="applicable-regimes">
+            <h2>⚖️ Применимые правовые режимы</h2>
+            <div class="regimes-grid">
+                {% for regime in regimes %}
+                <a href="/v2/regime/{{ regime.id }}" class="regime-card category-{{ regime.category }}">
+                    <h3>{{ regime.name }}</h3>
+                    <p>{{ regime.description }}</p>
+                    <span class="regime-category">{{ regime.category }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if states %}
+        <section class="legal-states">
+            <h2>🔄 Юридические состояния</h2>
+            <p class="section-description">Возможные правовые состояния в данной ситуации</p>
+
+            <div class="states-list">
+                {% for state in states %}
+                <div class="state-card state-type-{{ state.state_type }}">
+                    <div class="state-header">
+                        <h3>{{ state.name }}</h3>
+                        <span class="state-type-badge">{{ state.state_type }}</span>
+                    </div>
+
+                    {% if state.description %}
+                    <p class="state-description">{{ state.description }}</p>
+                    {% endif %}
+
+                    <div class="state-details">
+                        {% if state.triggers %}
+                        <div class="state-detail-item">
+                            <h4>Триггеры (что вызывает):</h4>
+                            <ul>
+                                {% for trigger in state.triggers %}
+                                <li>{{ trigger.type }}: {{ trigger.condition }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if state.consequences %}
+                        <div class="state-detail-item">
+                            <h4>Последствия:</h4>
+                            <ul>
+                                {% for consequence in state.consequences %}
+                                <li>
+                                    <strong>{{ consequence.type }}:</strong> {{ consequence.description }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="state-footer">
+                        <span class="regime-link">
+                            Режим: <a href="/v2/regime/{{ state.regime_id }}">{{ state.regime_name }}</a>
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if impacts %}
+        <section class="normative-impacts">
+            <h2>📜 Нормативные воздействия</h2>
+            <p class="section-description">Конкретные нормы законов, регулирующие эту ситуацию</p>
+
+            <div class="impacts-list">
+                {% for impact in impacts %}
+                <div class="impact-card action-{{ impact.action_type }}">
+                    <div class="impact-header">
+                        <h4>{{ impact.law_title }}</h4>
+                        <span class="article-number">{{ impact.article_number }}</span>
+                    </div>
+
+                    <div class="impact-details">
+                        <div class="impact-meta">
+                            <span class="action-type">{{ impact.action_type }}</span>
+                            <span class="state-name">→ {{ impact.state_name }}</span>
+                        </div>
+
+                        {% if impact.text_excerpt %}
+                        <p class="text-excerpt">{{ impact.text_excerpt }}</p>
+                        {% endif %}
+
+                        <div class="validity-period">
+                            <span>Действует с {{ impact.valid_from.strftime('%d.%m.%Y') }}</span>
+                            {% if impact.valid_until %}
+                            <span>до {{ impact.valid_until.strftime('%d.%m.%Y') }}</span>
+                            {% else %}
+                            <span class="valid-now">✓ Действует сейчас</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if situation.timeline %}
+        <section class="situation-timeline">
+            <h2>📅 Временная линия событий</h2>
+            <div class="timeline-list">
+                {% for event in situation.timeline %}
+                <div class="timeline-event">
+                    <span class="event-date">{{ event.date }}</span>
+                    <span class="event-description">{{ event.event }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="next-steps">
+            <h2>Что делать дальше?</h2>
+            <div class="next-steps-grid">
+                <a href="/v2/regimes/" class="next-step-card">
+                    <h3>Изучить режимы</h3>
+                    <p>Подробнее о правовых режимах</p>
+                </a>
+                <a href="/v2/timeline/" class="next-step-card">
+                    <h3>Посмотреть изменения</h3>
+                    <p>Последние изменения законов</p>
+                </a>
+                <a href="/v2/situations/" class="next-step-card">
+                    <h3>Другие ситуации</h3>
+                    <p>Похожие юридические ситуации</p>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="v2-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Starec Legal Intelligence</p>
+            <p>v2.0-prototype</p>
+        </div>
+    </footer>
+</body>
+</html>

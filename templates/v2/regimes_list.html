@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Правовые режимы - v2.0</title>
+    <link rel="stylesheet" href="/static/css/v2_style.css">
+</head>
+<body>
+    <header class="v2-header">
+        <div class="header-content">
+            <h1>⚖️ Правовые режимы</h1>
+            <p class="tagline">Области правового регулирования</p>
+        </div>
+    </header>
+
+    <nav class="v2-nav">
+        <div class="nav-content">
+            <a href="/v2/" class="nav-link">Главная</a>
+            <a href="/v2/situations/" class="nav-link">📋 Ситуации</a>
+            <a href="/v2/regimes/" class="nav-link active">⚖️ Режимы</a>
+            <a href="/v2/timeline/" class="nav-link">📅 Изменения</a>
+            <a href="/" class="nav-link nav-link-v1">← v1.0</a>
+        </div>
+    </nav>
+
+    <main class="v2-main">
+        <section class="regimes-intro">
+            <h2>Что такое правовой режим?</h2>
+            <p>Правовой режим — это совокупность юридических состояний и правил их изменения в определенной области регулирования.</p>
+            <p>Например, <strong>режим договорных обязательств</strong> включает состояния: договор заключен → исполняется → просрочен → исполнен.</p>
+        </section>
+
+        <section class="regimes-section">
+            {% if regimes %}
+                <div class="regimes-grid">
+                    {% for regime in regimes %}
+                    <a href="/v2/regime/{{ regime.id }}" class="regime-card category-{{ regime.category }}">
+                        <div class="regime-header">
+                            <h3>{{ regime.name }}</h3>
+                            <span class="regime-category">{{ regime.category }}</span>
+                        </div>
+
+                        {% if regime.description %}
+                        <p class="regime-description">{{ regime.description }}</p>
+                        {% endif %}
+
+                        <div class="regime-footer">
+                            <span class="states-count">{{ regime.states_count }} состояний</span>
+                            <span class="regime-arrow">→</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>Правовые режимы загружаются...</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="categories-legend">
+            <h2>Категории режимов</h2>
+            <div class="legend-grid">
+                <div class="legend-item category-civil">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">civil — Гражданское право</span>
+                </div>
+                <div class="legend-item category-tax">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">tax — Налоговое право</span>
+                </div>
+                <div class="legend-item category-administrative">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">administrative — Административное право</span>
+                </div>
+                <div class="legend-item category-criminal">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">criminal — Уголовное право</span>
+                </div>
+                <div class="legend-item category-procedural">
+                    <span class="legend-color"></span>
+                    <span class="legend-label">procedural — Процессуальное право</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="v2-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Starec Legal Intelligence</p>
+            <p>v2.0-prototype</p>
+        </div>
+    </footer>
+</body>
+</html>

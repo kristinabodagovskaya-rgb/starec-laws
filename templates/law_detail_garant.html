@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ law.title }}{% if is_revision_view %} (ред. {{ law.last_amendment_date }}){% endif %} - Starec Legal</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .nav-panel {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .nav-panel-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.75rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-home {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .nav-home:hover { text-decoration: underline; }
+
+        .edition-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #f8fafc;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .edition-selector label {
+            font-size: 0.875rem;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .edition-selector select {
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            background: white;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .edition-indicator {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .edition-indicator.current {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: white;
+            color: #1d1d1f;
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .btn:hover { background: #f8fafc; }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .law-title {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+        }
+
+        .law-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .revision-banner {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem 2rem;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
+
+        .revision-banner-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .revision-banner a { color: #b45309; font-weight: 500; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 2rem;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 80px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-section {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .sidebar-section:last-child { border-bottom: none; }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+        }
+
+        .position-indicator {
+            background: #f1f5f9;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.813rem;
+            color: #475569;
+        }
+
+        .position-indicator strong { color: #1e293b; }
+
+        .toc { list-style: none; }
+        .toc-item { margin-bottom: 0.125rem; }
+
+        .toc-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: #475569;
+            text-decoration: none;
+            font-size: 0.813rem;
+            border-radius: 0.25rem;
+            transition: all 0.15s;
+            border-left: 2px solid transparent;
+        }
+
+        .toc-link:hover { background: #f8fafc; color: #1e293b; }
+
+        .toc-link.active {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-left-color: #3b82f6;
+            font-weight: 500;
+        }
+
+        .toc-section {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.813rem;
+            padding: 0.75rem 0.75rem 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .toc-chapter {
+            font-weight: 500;
+            color: #475569;
+            font-size: 0.813rem;
+            padding: 0.5rem 0.75rem 0.25rem 1rem;
+        }
+
+        .editions-list { max-height: 200px; overflow-y: auto; }
+
+        .edition-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: #475569;
+            text-decoration: none;
+            font-size: 0.813rem;
+            border-radius: 0.25rem;
+        }
+
+        .edition-link:hover { background: #f8fafc; }
+        .edition-link.active { background: #fef3c7; color: #92400e; }
+        .edition-link.current-edition { background: #dcfce7; color: #166534; }
+
+        .main-content {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .law-text { font-size: 1rem; line-height: 1.8; }
+        .article-section { scroll-margin-top: 100px; }
+
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: static; max-height: none; }
+            .nav-panel-content { flex-direction: column; align-items: stretch; }
+            .edition-selector { width: 100%; }
+            .edition-selector select { flex: 1; }
+        }
+
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <nav class="nav-panel">
+        <div class="nav-panel-content">
+            <div class="nav-left">
+                <a href="/" class="nav-home">Главная</a>
+                <a href="/laws" class="nav-home">База законов</a>
+            </div>
+
+            {% if editions and editions|length > 0 %}
+            <div class="edition-selector">
+                <label>Редакция:</label>
+                <select onchange="if(this.value) window.location.href=this.value">
+                    <option value="/law/{{ law.id }}" {% if not is_revision_view %}selected{% endif %}>Действующая</option>
+                    {% for edition in editions %}
+                    <option value="/law/{{ law.id }}/edition/{{ edition.id }}" {% if current_edition_id == edition.id %}selected{% endif %}>
+                        {{ edition.date }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if is_revision_view %}
+                <span class="edition-indicator">Историческая</span>
+                {% else %}
+                <span class="edition-indicator current">Действующая</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <a href="/law/{{ law.id }}/download" class="btn">Скачать</a>
+        </div>
+    </nav>
+
+    <header class="header">
+        <div class="header-content">
+            <h1 class="law-title">{{ law.title }}</h1>
+            <div class="law-meta">
+                {% if law.law_number %}<span>{{ law.law_number }}</span>{% endif %}
+                {% if law.law_date %}<span>от {{ law.law_date }}</span>{% endif %}
+                {% if law.last_amendment_date and not is_revision_view %}<span>(ред. от {{ law.last_amendment_date }})</span>{% endif %}
+                {% if editions %}<span>| {{ editions|length }} редакций</span>{% endif %}
+            </div>
+        </div>
+    </header>
+
+    {% if is_revision_view %}
+    <div class="revision-banner">
+        <div class="revision-banner-content">
+            <span>Вы просматриваете редакцию от <strong>{{ law.last_amendment_date }}</strong></span>
+            <a href="/law/{{ law.id }}">К действующей редакции</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="position-indicator">
+                    <strong>Позиция:</strong> <span id="current-position">Начало</span>
+                </div>
+            </div>
+
+            {% if toc and toc|length > 0 %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">Содержание</div>
+                <ul class="toc" id="toc">
+                    {% for section in toc %}
+                        {% if section.title %}<li class="toc-section">{{ section.title }}</li>{% endif %}
+                        {% for chapter in section.chapters %}
+                        <li class="toc-chapter">{{ chapter.title }}</li>
+                        {% for article in chapter.articles %}
+                        <li class="toc-item"><a href="#{{ article.id }}" class="toc-link" data-article-id="{{ article.id }}">{{ article.title }}</a></li>
+                        {% endfor %}
+                        {% endfor %}
+                        {% for article in section.articles %}
+                        <li class="toc-item"><a href="#{{ article.id }}" class="toc-link" data-article-id="{{ article.id }}">{{ article.title }}</a></li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% elif articles and articles|length > 0 %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">Статьи ({{ articles|length }})</div>
+                <ul class="toc" id="toc">
+                    {% for article in articles %}
+                    <li class="toc-item"><a href="#{{ article.id }}" class="toc-link" data-article-id="{{ article.id }}">{{ article.title }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if editions and editions|length > 0 %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">Редакции ({{ editions|length }})</div>
+                <div class="editions-list">
+                    <a href="/law/{{ law.id }}" class="edition-link {% if not is_revision_view %}current-edition{% endif %}">Действующая</a>
+                    {% for edition in editions[:20] %}
+                    <a href="/law/{{ law.id }}/edition/{{ edition.id }}" class="edition-link {% if current_edition_id == edition.id %}active{% endif %}">{{ edition.date }}</a>
+                    {% endfor %}
+                    {% if editions|length > 20 %}<div style="padding: 0.5rem; font-size: 0.75rem; color: #94a3b8;">и ещё {{ editions|length - 20 }}...</div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+
+        <main class="main-content">
+            <div class="law-text">{{ law.full_text_processed | safe }}</div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tocLinks = document.querySelectorAll('.toc-link[data-article-id]');
+            const positionEl = document.getElementById('current-position');
+            if (!tocLinks.length) return;
+
+            const sections = Array.from(tocLinks)
+                .map(l => document.getElementById(l.dataset.articleId))
+                .filter(el => el);
+            if (!sections.length) return;
+
+            let current = null;
+
+            function update() {
+                const y = window.scrollY + 150;
+                let active = null;
+                for (let i = sections.length - 1; i >= 0; i--) {
+                    if (sections[i].offsetTop <= y) { active = sections[i]; break; }
+                }
+                tocLinks.forEach(l => {
+                    l.classList.remove('active');
+                    if (active && l.dataset.articleId === active.id) {
+                        l.classList.add('active');
+                        if (current !== active.id) {
+                            l.scrollIntoView({block:'nearest',behavior:'smooth'});
+                            current = active.id;
+                        }
+                        if (positionEl) positionEl.textContent = l.textContent.trim();
+                    }
+                });
+                if (!active && positionEl) positionEl.textContent = 'Начало';
+            }
+
+            tocLinks.forEach(l => l.addEventListener('click', function(e) {
+                e.preventDefault();
+                const t = document.getElementById(this.dataset.articleId);
+                if (t) {
+                    t.scrollIntoView({behavior:'smooth',block:'start'});
+                    tocLinks.forEach(x => x.classList.remove('active'));
+                    this.classList.add('active');
+                    if (positionEl) positionEl.textContent = this.textContent.trim();
+                }
+            }));
+
+            let ticking = false;
+            window.addEventListener('scroll', () => {
+                if (!ticking) { requestAnimationFrame(() => { update(); ticking = false; }); ticking = true; }
+            });
+            update();
+        });
+    </script>
+</body>
+</html>

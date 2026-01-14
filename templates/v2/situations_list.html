@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Типовые юридические ситуации - v2.0</title>
+    <link rel="stylesheet" href="/static/css/v2_style.css">
+</head>
+<body>
+    <header class="v2-header">
+        <div class="header-content">
+            <h1>📋 Типовые юридические ситуации</h1>
+            <p class="tagline">Выберите ситуацию, похожую на вашу</p>
+        </div>
+    </header>
+
+    <nav class="v2-nav">
+        <div class="nav-content">
+            <a href="/v2/" class="nav-link">Главная</a>
+            <a href="/v2/situations/" class="nav-link active">📋 Ситуации</a>
+            <a href="/v2/regimes/" class="nav-link">⚖️ Режимы</a>
+            <a href="/v2/timeline/" class="nav-link">📅 Изменения</a>
+            <a href="/" class="nav-link nav-link-v1">← v1.0</a>
+        </div>
+    </nav>
+
+    <main class="v2-main">
+        <section class="filters-section">
+            <h2>Фильтр по категориям</h2>
+            <div class="category-filters">
+                <a href="/v2/situations/" class="filter-btn {% if not category %}active{% endif %}">Все</a>
+                <a href="/v2/situations/?category=договор" class="filter-btn {% if category == 'договор' %}active{% endif %}">Договоры</a>
+                <a href="/v2/situations/?category=спор" class="filter-btn {% if category == 'спор' %}active{% endif %}">Споры</a>
+                <a href="/v2/situations/?category=налоги" class="filter-btn {% if category == 'налоги' %}active{% endif %}">Налоги</a>
+                <a href="/v2/situations/?category=административное" class="filter-btn {% if category == 'административное' %}active{% endif %}">Административное</a>
+            </div>
+        </section>
+
+        <section class="situations-section">
+            {% if situations %}
+                <div class="situations-list">
+                    {% for situation in situations %}
+                    <a href="/v2/situation/{{ situation.id }}" class="situation-card">
+                        <div class="situation-header">
+                            <h3>{{ situation.title }}</h3>
+                            {% if situation.category %}
+                            <span class="situation-category">{{ situation.category }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if situation.description %}
+                        <p class="situation-description">{{ situation.description }}</p>
+                        {% endif %}
+
+                        {% if situation.actors %}
+                        <div class="situation-actors">
+                            <strong>Участники:</strong>
+                            {% for actor in situation.actors %}
+                                <span class="actor-badge">{{ actor.type }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="situation-footer">
+                            <span class="views-count">👁️ {{ situation.views_count }} просмотров</span>
+                            <span class="situation-arrow">→</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>Пока нет типовых ситуаций в этой категории</p>
+                    <p><a href="/v2/situations/">Посмотреть все ситуации</a></p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="help-section">
+            <h2>Как пользоваться?</h2>
+            <ol>
+                <li>Выберите ситуацию, максимально похожую на вашу</li>
+                <li>Изучите применимые юридические состояния</li>
+                <li>Узнайте правовые последствия и необходимые действия</li>
+                <li>Посмотрите конкретные нормы законов</li>
+            </ol>
+        </section>
+    </main>
+
+    <footer class="v2-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Starec Legal Intelligence</p>
+            <p>v2.0-prototype</p>
+        </div>
+    </footer>
+</body>
+</html>
