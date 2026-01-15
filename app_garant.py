@@ -352,9 +352,12 @@ def laws_list():
     if search:
         # Раскрываем сокращения (гк -> гражданский кодекс)
         expanded_search = expand_abbreviations(search)
-        query += " AND title ILIKE %s"
-        params.append(f'%{expanded_search}%')
-
+        # Ищем каждое слово отдельно (AND)
+        words = expanded_search.split()
+        for word in words:
+            if len(word) >= 2:  # Игнорируем короткие слова
+                query += " AND title ILIKE %s"
+                params.append(f"%{word}%")
     query += " ORDER BY title"
 
     cursor.execute(query, params)
