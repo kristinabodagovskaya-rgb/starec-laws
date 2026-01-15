@@ -10,8 +10,49 @@ from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 import io
 from functools import lru_cache
+from flask import jsonify
 
 app = Flask(__name__)
+
+# Сокращения для поиска (26 штук)
+LAW_ABBREVIATIONS = {
+    'гк': 'гражданский кодекс',
+    'гк рф': 'гражданский кодекс',
+    'ук': 'уголовный кодекс',
+    'ук рф': 'уголовный кодекс',
+    'тк': 'трудовой кодекс',
+    'тк рф': 'трудовой кодекс',
+    'коап': 'кодекс административных правонарушений',
+    'коап рф': 'кодекс административных правонарушений',
+    'нк': 'налоговый кодекс',
+    'нк рф': 'налоговый кодекс',
+    'жк': 'жилищный кодекс',
+    'жк рф': 'жилищный кодекс',
+    'ск': 'семейный кодекс',
+    'ск рф': 'семейный кодекс',
+    'зк': 'земельный кодекс',
+    'зк рф': 'земельный кодекс',
+    'апк': 'арбитражный процессуальный кодекс',
+    'апк рф': 'арбитражный процессуальный кодекс',
+    'гпк': 'гражданский процессуальный кодекс',
+    'гпк рф': 'гражданский процессуальный кодекс',
+    'упк': 'уголовно-процессуальный кодекс',
+    'упк рф': 'уголовно-процессуальный кодекс',
+    'бк': 'бюджетный кодекс',
+    'вк': 'водный кодекс',
+    'лк': 'лесной кодекс',
+    'зпп': 'защите прав потребителей',
+    'озпп': 'защите прав потребителей',
+}
+
+
+def expand_abbreviations(query):
+    """Раскрывает сокращения в поисковом запросе"""
+    query_lower = query.lower().strip()
+    for abbr, full in LAW_ABBREVIATIONS.items():
+        if abbr in query_lower:
+            return query_lower.replace(abbr, full)
+    return query
 
 PG_CONFIG = {
     'host': '127.0.0.1',
@@ -269,8 +310,14 @@ def get_query_embedding(query_text):
 
 @app.route('/')
 def index():
-    """Clean homepage with search and link to laws database"""
-    return render_template('index_clean.html')
+    """Главная страница с поиском и ссылкой на базу законов"""
+    conn = psycopg2.connect(**PG_CONFIG)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM law_embeddings WHERE full_text IS NOT NULL")
+    law_count = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return render_template('index_clean.html', law_count=law_count)
 
 
 @app.route('/laws')
@@ -303,8 +350,10 @@ def laws_list():
         params.extend(['%-ФЗ', '%-ФКЗ'])
 
     if search:
+        # Раскрываем сокращения (гк -> гражданский кодекс)
+        expanded_search = expand_abbreviations(search)
         query += " AND title ILIKE %s"
-        params.append(f'%{search}%')
+        params.append(f'%{expanded_search}%')
 
     query += " ORDER BY title"
 
@@ -325,16 +374,56 @@ def laws_list():
     return render_template('laws_list.html', laws=laws, law_type=law_type, search=search)
 
 
+@app.route('/api/autocomplete')
+def api_autocomplete():
+    """API для автоподбора законов по названию"""
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+
+    # Раскрываем сокращения
+    expanded_query = expand_abbreviations(query)
+
+    conn = psycopg2.connect(**PG_CONFIG)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, title, law_number
+        FROM law_embeddings
+        WHERE full_text IS NOT NULL
+          AND length(full_text) > 500
+          AND LOWER(title) LIKE %s
+        ORDER BY title
+        LIMIT 10
+    """, (f'%{expanded_query.lower()}%',))
+
+    results = []
+    for row in cursor.fetchall():
+        results.append({
+            'id': row[0],
+            'title': row[1],
+            'law_number': row[2]
+        })
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(results)
+
+
 @app.route('/search')
 def search():
-    """Semantic search using vector similarity"""
+    """Семантический поиск с раскрытием сокращений"""
     query = request.args.get('q', '').strip()
 
     if not query:
         return render_template_string(INDEX_TEMPLATE, laws=[], total_laws=0)
 
-    # Generate query embedding
-    query_embedding = get_query_embedding(query)
+    # Раскрываем сокращения
+    expanded_query = expand_abbreviations(query)
+
+    # Генерируем embedding для поиска
+    query_embedding = get_query_embedding(expanded_query)
 
     if not query_embedding:
         return "Error generating search embedding", 500
@@ -678,4 +767,4 @@ def v2_regime_detail(regime_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8082)
