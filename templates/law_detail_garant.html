@@ -254,7 +254,7 @@
         }
 
         .law-text { font-size: 1rem; line-height: 1.8; }
-        .article-section { scroll-margin-top: 100px; }
+        .law-article, .article-section { scroll-margin-top: 100px; }
 
         @media (max-width: 1024px) {
             .container { grid-template-columns: 1fr; }
@@ -323,12 +323,6 @@
 
     <div class="container">
         <aside class="sidebar">
-            <div class="sidebar-section">
-                <div class="position-indicator">
-                    <strong>Позиция:</strong> <span id="current-position">Начало</span>
-                </div>
-            </div>
-
             {% if toc and toc|length > 0 %}
             <div class="sidebar-section">
                 <div class="sidebar-title">Содержание</div>

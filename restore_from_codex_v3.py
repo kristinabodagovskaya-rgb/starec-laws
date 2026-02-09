@@ -3,6 +3,7 @@
 
 import psycopg2
 import requests
+import re
 
 DB_CONFIG = {
     'database': 'starec_laws',
@@ -43,6 +44,22 @@ def fetch_from_codex(nd):
     resp = requests.get(url, timeout=60)
     resp.raise_for_status()
     return resp.json()
+
+def format_content_with_linebreaks(text):
+    """Добавить переносы строк перед пунктами"""
+    if not text:
+        return ''
+
+    # Добавляем <br> перед нумерованными пунктами: 1. 2. 3. и т.д.
+    text = re.sub(r'(\s)(\d+)\.\s+', r'\1<br>\2. ', text)
+
+    # Добавляем <br> перед пунктами со скобкой: 1) 2) 3)
+    text = re.sub(r'(\s)(\d+)\)\s+', r'\1<br>\2) ', text)
+
+    # Добавляем <br> перед буквенными пунктами: а) б) в)
+    text = re.sub(r'(\s)([а-яё])\)\s+', r'\1<br>\2) ', text)
+
+    return text
 
 def format_document(doc, our_title):
     """Форматировать документ с правильными метаданными"""
@@ -98,7 +115,8 @@ def format_document(doc, our_title):
             html_parts.append(f'<h3 class="law-article-title">{header}</h3>')
         
         if art_text:
-            html_parts.append(f'<div class="law-article-content">{art_text}</div>')
+            formatted_text = format_content_with_linebreaks(art_text)
+            html_parts.append(f'<div class="law-article-content">{formatted_text}</div>')
         html_parts.append('</div>')
     
     html_parts.append('</div>')  # law-content
